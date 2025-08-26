@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pookalam — Canvas</title>
+  <style>
+    body { display:flex; gap:20px; font-family:system-ui,Segoe UI,Roboto; padding:24px; background:#f6f0e8; }
+    #ui { width:260px; }
+    canvas { border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.12); background: white; }
+    label { display:block; margin-top:12px; font-size:13px; color:#333; }
+    input[type=range] { width:100%; }
+    button { margin-top:12px; padding:8px 12px; border-radius:8px; border:0; background:#2b7a78; color:white; cursor:pointer;}
+  </style>
+</head>
+<body>
+  <canvas id="c" width="700" height="700"></canvas>
+  <div id="ui">
+    <h3>Pookalam controls</h3>
+    <label>Rings: <span id="ringsVal">4</span></label>
+    <input id="rings" type="range" min="1" max="8" value="4">
+    <label>Base size: <span id="sizeVal">260</span></label>
+    <input id="size" type="range" min="120" max="360" value="260">
+    <label>Petal variation</label>
+    <input id="variation" type="range" min="0" max="50" value="8">
+    <label>Color palette</label>
+    <select id="palette">
+      <option value="traditional">Traditional</option>
+      <option value="sunset">Sunset</option>
+      <option value="pastel">Pastel</option>
+      <option value="random">Random</option>
+    </select>
+    <button id="drawBtn">Draw</button>
+    <p style="margin-top:14px;font-size:13px;color:#555">Tip: change rings & size, then click Draw.</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const center = { x: canvas.width/2, y: canvas.height/2 + 40 };
+
+    const palettes = {
+      traditional: ['#ff7f50','#ffdd57','#9be564','#6ec6ff','#ff6b6b'],
+      sunset: ['#ff6b6b','#ff9a76','#ffd66b','#ffefc5','#a64bf4'],
+      pastel: ['#f8b195','#f67280','#c06c84','#6c5b7b','#355c7d'],
+    };
+
+    function randPalette(n) {
+      const arr = [];
+      for(let i=0;i<n;i++){
+        arr.push('#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));
+      }
+      return arr;
+    }
+
+    function drawPetal(x,y,angle,len,color){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(angle*Math.PI/180);
+      ctx.beginPath();
+      // Bezier petal: from (0,0) to (0,-len)
+      ctx.moveTo(0,0);
+      ctx.bezierCurveTo(len*0.3, -len*0.15, len*0.3, -len*0.85, 0, -len);
+      ctx.bezierCurveTo(-len*0.3, -len*0.85, -len*0.3, -len*0.15, 0,0);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPookalam(rings=4, baseSize=260, variation=8, paletteName='traditional'){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const colors = paletteName === 'random' ? randPalette(rings*2) : palettes[paletteName] || palettes.traditional;
+      // draw multiple concentric rings
+      for(let ring=0; ring<rings; ring++){
+        const t = ring/(rings-1 || 1);
+        const radius = (baseSize/(rings)) * (ring+1);
+        const petals = Math.floor(8 + ring*4 + Math.round(Math.sin(ring)*variation));
+        const petLen = 40 + (ring * (baseSize / (rings*1.6)));
+        for(let i=0;i<petals;i++){
+          const deg = (360/petals)*i;
+          const rad = deg * Math.PI/180;
+          const px = center.x + radius * Math.cos(rad);
+          const py = center.y + radius * Math.sin(rad);
+          const color = colors[(ring + i) % colors.length];
+          drawPetal(px, py, deg+90, petLen, color);
+        }
+      }
+      // center circle
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, 28, 0, Math.PI*2);
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fill();
+    }
+
+    // UI hooks
+    document.getElementById('drawBtn').onclick = () => {
+      const rings = +document.getElementById('rings').value;
+      const size = +document.getElementById('size').value;
+      const varn = +document.getElementById('variation').value;
+      const palette = document.getElementById('palette').value;
+      drawPookalam(rings, size, varn, palette);
+      document.getElementById('ringsVal').innerText = rings;
+      document.getElementById('sizeVal').innerText = size;
+    };
+
+    // initial draw
+    drawPookalam(4,260,8,'traditional');
+  </script>
+</body>
+</html>
